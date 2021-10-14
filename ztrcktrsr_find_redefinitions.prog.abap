@@ -1,14 +1,41 @@
 REPORT ztrcktrsr_find_redefinitions.
 
+DATA gv_clsname         TYPE seoclsname.
+DATA gv_cpdname         TYPE seocpdname.
+DATA gt_dynp            TYPE TABLE OF dynpread WITH DEFAULT KEY.
 
 PARAMETERS p_clas TYPE seoclsname DEFAULT 'CL_GUI_CONTROL'.
 PARAMETERS p_meth TYPE seocpdname DEFAULT 'FREE'.
 
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_clas.
+
+  CALL FUNCTION 'SEOM_OO_PATTERN_SELECTION'
+    IMPORTING
+      clsname             = gv_clsname
+      cpdname             = gv_cpdname
+    EXCEPTIONS
+      selection_cancelled = 1
+      OTHERS              = 2.
+  IF sy-subrc = 0.
+    p_clas = gv_clsname.
+    gt_dynp = VALUE #( ( fieldname = 'P_METH' fieldvalue = gv_cpdname ) ).
+    CALL FUNCTION 'DYNP_VALUES_UPDATE'
+      EXPORTING
+        dyname     = sy-cprog
+        dynumb     = sy-dynnr
+      TABLES
+        dynpfields = gt_dynp
+      EXCEPTIONS
+        OTHERS     = 8.
+    IF sy-subrc <> 0.
+      p_meth = gv_cpdname.
+    ENDIF.
+  ENDIF.
 
 CLASS lcl_main DEFINITION.
   PUBLIC SECTION.
     METHODS on_double_click
-                  FOR EVENT double_click OF cl_salv_events_table
+                FOR EVENT double_click OF cl_salv_events_table
       IMPORTING row column.
     METHODS docker.
     METHODS display.
